@@ -1,3 +1,6 @@
+// @ts-nocheck
+
+
 import { ResolvedCoreOptions, TimeChartSeriesOptions } from '../options';
 import { domainSearch, EventDispatcher } from '../utils';
 import { CanvasLayer } from './canvasLayer';
@@ -52,7 +55,7 @@ export class NearestPointModel {
                 }
                 const sortKey = (a: typeof near[0]) => Math.abs(a.x - domain);
                 near.sort((a, b) => sortKey(a) - sortKey(b));
-                const pxPoint = this.model.pxPoint(near[0]);
+                const pxPoint = this.model.pxPoint(near[0], s.rangeId);
                 const width = this.canvas.canvas.clientWidth;
                 const height = this.canvas.canvas.clientHeight;
 

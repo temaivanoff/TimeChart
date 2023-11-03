@@ -73,8 +73,7 @@ export default class TimeChart<TPlugins extends TimeChartPlugins=NoPlugin> {
 
     constructor(public el: HTMLElement, options?: TimeChartOptions<TPlugins>) {
         const coreOptions = completeOptions(el, options);
-
-        this.model = new RenderModel(coreOptions);
+        this.model = new RenderModel(this, coreOptions);
         const shadowRoot = el.shadowRoot ?? el.attachShadow({ mode: 'open' });
         const style = document.createElement('style');
         style.innerText = `

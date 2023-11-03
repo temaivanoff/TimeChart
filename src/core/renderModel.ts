@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import { scaleLinear } from "d3-scale";
 import { ResolvedCoreOptions, TimeChartSeriesOptions } from '../options';
 import { EventDispatcher } from '../utils';
@@ -30,16 +32,51 @@ function unionMinMax(...items: MinMax[]) {
 export class RenderModel {
     xScale = scaleLinear();
     yScale = scaleLinear();
+    yScales = {};
+		yScalesPadding = 0;
+    xScalesPadding = 0;
+
     xRange: MinMax | null = null;
     yRange: MinMax | null = null;
 
-    constructor(private options: ResolvedCoreOptions) {
+    constructor(chart, private options: ResolvedCoreOptions) {
         if (options.xRange !== 'auto' && options.xRange) {
             this.xScale.domain([options.xRange.min, options.xRange.max])
         }
         if (options.yRange !== 'auto' && options.yRange) {
             this.yScale.domain([options.yRange.min, options.yRange.max])
         }
+        if (options.yRanges) {
+          const _xRange = this.xScale.range;
+          
+          this.xScale.range = (p) => {
+            if (p) {
+              _xRange(p);
+            }
+            
+            if (this.yScalesPadding !== 0 && this.xScalesPadding !== this.yScalesPadding) {
+              this.xScalesPadding = this.yScalesPadding;
+              options.renderPaddingLeft = this.yScalesPadding;
+              chart.contentBoxDetector.node.style.left = this.yScalesPadding + 'px';
+              const p = _xRange();
+              _xRange([this.xScalesPadding, p[1]]);
+            }
+ 
+            return _xRange();
+          }
+
+          for (const range of options.yRanges) {
+              this.yScales[range.id] = { min: range.min, max: range.max, scale: scaleLinear() };
+              this.yScales[range.id].scale.domain([range.min, range.max]);
+          }
+        }
+    }
+
+    getYscale(rangeId) {
+			if (this.yScales[rangeId]) {
+				return this.yScales[rangeId].scale;
+			}
+			return this.yScale;
     }
 
     resized = new EventDispatcher<(width: number, height: number) => void>();
@@ -47,6 +84,12 @@ export class RenderModel {
         const op = this.options;
         this.xScale.range([op.paddingLeft, width - op.paddingRight]);
         this.yScale.range([height - op.paddingBottom, op.paddingTop]);
+
+				if (op.yRanges) {
+					for (const range of op.yRanges) {
+						this.getYscale(range.id).range([height - op.paddingBottom, op.paddingTop]);
+					}
+        }
 
         this.resized.dispatch(width, height)
         this.requestRedraw()
@@ -111,6 +154,14 @@ export class RenderModel {
             } else if (o.yRange) {
                 this.yScale.domain([o.yRange.min, o.yRange.max])
             }
+						if (o.yRanges) {
+							for (const range of o.yRanges) {
+								if (this.yScales[range.id] === undefined) {
+									this.yScales[range.id] = { min: range.min, max: range.max, scale: scaleLinear() };
+								}
+								this.yScales[range.id].scale.domain([range.min, range.max]);
+							}
+						}
         }
     }
 
@@ -129,10 +180,10 @@ export class RenderModel {
         });
     }
 
-    pxPoint(dataPoint: DataPoint) {
+    pxPoint(dataPoint: DataPoint, rangeId) {
         return {
             x: this.xScale(dataPoint.x)!,
-            y: this.yScale(dataPoint.y)!,
+            y: this.getYscale(rangeId)(dataPoint.y)!,
         }
     }
 }

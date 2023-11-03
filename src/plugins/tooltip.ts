@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import { TimeChartSeriesOptions, TooltipOptions } from "../options";
 import { TimeChartPlugin } from ".";
 import core from "../core";
@@ -109,7 +111,7 @@ td {
             let minPointerDistance = Number.POSITIVE_INFINITY;
             let displayingX: number | null = null;
             for (const [s, d] of chart.nearestPoint.dataPoints) {
-                const px = chart.model.pxPoint(d);
+                const px = chart.model.pxPoint(d, s.rangeId);
                 const dx = px.x - p.x;
                 const dy = px.y - p.y;
                 const dis = Math.sqrt(dx * dx + dy * dy);

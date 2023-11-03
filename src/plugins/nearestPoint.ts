@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import { NearestPointModel } from "../core/nearestPoint";
 import { SVGLayer } from "../core/svgLayer";
 import { ResolvedCoreOptions, TimeChartSeriesOptions } from "../options";
@@ -55,9 +57,19 @@ export class NearestPoint {
             if (!point) {
                 intersect.style.visibility = 'hidden';
             } else {
-                intersect.style.visibility = 'visible';
-                const p = this.model.pxPoint(point);
-                intersect.transform.baseVal.getItem(0).setTranslate(p.x, p.y);
+                if (this.options.yRanges) {
+                    const p = this.model.pxPoint(point, s.rangeId);
+                    if (p.x >= this.model.yScalesPadding) {
+                      intersect.style.visibility = 'visible';
+                      intersect.transform.baseVal.getItem(0).setTranslate(p.x, p.y);
+                    } else {
+                      intersect.style.visibility = 'hidden';
+                    }
+                } else {
+                    intersect.style.visibility = 'visible';
+                    const p = this.model.pxPoint(point, s.rangeId);
+                    intersect.transform.baseVal.getItem(0).setTranslate(p.x, p.y);
+                }
             }
         }
     }

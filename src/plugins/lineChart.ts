@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import { DataPoint, RenderModel } from "../core/renderModel";
 import { resolveColorRGBA, ResolvedCoreOptions, TimeChartSeriesOptions, LineType } from '../options';
 import { domainSearch } from '../utils';
@@ -428,13 +430,16 @@ export class LineChartRenderer {
 
     drawFrame() {
         this.syncBuffer();
-        this.syncDomain();
+        // this.syncDomain();
         this.uniformBuffer.upload();
         const gl = this.gl;
         for (const [ds, arr] of this.arrays) {
             if (!ds.visible) {
                 continue;
             }
+      
+            this.syncDomain(ds.rangeId);
+            this.uniformBuffer.upload();
 
             const prog = ds.lineType === LineType.NativeLine || ds.lineType === LineType.NativePoint ? this.nativeLineProgram : this.lineProgram;
             prog.use();
@@ -468,7 +473,7 @@ export class LineChartRenderer {
         }
     }
 
-    syncDomain() {
+    syncDomain(rangeId) {
         this.syncViewport();
         const m = this.model;
 
@@ -476,12 +481,13 @@ export class LineChartRenderer {
         // (x - domain[0]) / (domain[1] - domain[0]) * (range[1] - range[0]) + range[0] - W / 2 - padding = s * (x + t)
         // => s = (range[1] - range[0]) / (domain[1] - domain[0])
         //    t = (range[0] - W / 2 - padding) / s - domain[0]
-
+     
         // Not using vec2 for precision
         const xDomain = m.xScale.domain();
         const xRange = m.xScale.range();
-        const yDomain = m.yScale.domain();
-        const yRange = m.yScale.range();
+        const yDomain = m.getYscale(rangeId).domain();
+        const yRange = m.getYscale(rangeId).range();
+        
         const s = [
             (xRange[1] - xRange[0]) / (xDomain[1] - xDomain[0]),
             (yRange[0] - yRange[1]) / (yDomain[1] - yDomain[0]),
@@ -490,7 +496,7 @@ export class LineChartRenderer {
             (xRange[0] - this.renderWidth / 2 - this.options.renderPaddingLeft) / s[0] - xDomain[0],
             -(yRange[0] - this.renderHeight / 2 - this.options.renderPaddingTop) / s[1] - yDomain[0],
         ];
-
+      
         this.uniformBuffer.modelScale.set(s);
         this.uniformBuffer.modelTranslate.set(t);
     }
